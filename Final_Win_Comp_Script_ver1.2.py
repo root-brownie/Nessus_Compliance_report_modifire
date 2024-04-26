@@ -1,40 +1,58 @@
 import openpyxl
 
-def sort_table_by_float_numbers(filename, sheetname, sort_column):
-    # Load the workbook
-    workbook = openpyxl.load_workbook(filename)
-    
-    # Select the worksheet
-    worksheet = workbook[sheetname]
-    
-    # Get the range of the entire table
-    table_range = worksheet.dimensions
-    
-    # Get the column index from the column letter
-    sort_column_index = openpyxl.utils.column_index_from_string(sort_column)
-    
-    # Get all the rows in the table (excluding the header row)
-    rows = list(worksheet.iter_rows(min_row=2, max_row=worksheet.max_row, min_col=1, max_col=sort_column_index))
-    
-    # Sort the rows based on the floating-point values in the specified column
-    sorted_rows = sorted(rows, key=lambda row: float(row[sort_column_index - 1].value) if row[sort_column_index - 1].value else float('inf'))
-    
-    # Clear the existing data in the worksheet
-    worksheet.delete_rows(2, worksheet.max_row)
-    
-    # Write the sorted rows back to the worksheet
-    for sorted_row in sorted_rows:
-        worksheet.append([cell.value for cell in sorted_row])
-    
-    # Save the modified workbook
-    workbook.save(filename)
-    workbook.close()
+# Load the Excel file
+import openpyxl
 
-# Usage example
-filename = 'result_comp.xlsx'
-sheetname = 'noncompliance'
-sort_column = 'C'
+#input file 
+file_path = input("Enter the file path: ")
+workbook = openpyxl.load_workbook(file_path)
 
-sort_table_by_float_numbers(filename, sheetname, sort_column)
+# Select the active sheet
+sheet = workbook.active
 
-print("Successess")
+# Define the columns to keep (N, P, Q, R)
+columns_to_keep = ['N', 'P', 'Q', 'R']
+
+# Get the maximum column index
+max_column_index = sheet.max_column
+
+# Get the maximum row index
+max_row = sheet.max_row
+
+# Iterate over the columns in reverse order
+for column in reversed(range(1, max_column_index + 1)):
+    column_letter = openpyxl.utils.get_column_letter(column)
+    
+    # Check if the column should be deleted
+    if column_letter not in columns_to_keep:
+        sheet.delete_cols(column)
+
+max_row = sheet.max_row
+
+# Insert a blank column between Column A and Column B
+sheet.insert_cols(2)
+
+# Move the content of Column E to the newly created column (Column B)
+for row in range(1, max_row + 1):
+    value = sheet.cell(row=row, column=5).value  # Get value from Column E
+    sheet.cell(row=row, column=2).value = value  # Assign value to Column B
+
+# Delete Column E After moving
+sheet.delete_cols(5)
+
+# Loop through each row in column K
+for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=4, max_col=4):
+    cell = row[0]
+    if cell.value and 'Impact' in cell.value:
+        # Delete everything before "Impact"
+        cell.value = cell.value.split('Impact', 1)[-1]
+       
+       #delete extra spaces apfter impact
+        cell.value = cell.value.split('\n', 2)[-1]
+
+# Save the modified workbook
+save_path = input("Enter the save path: ")
+workbook.save(save_path)
+
+
+print("Report Genetated")
